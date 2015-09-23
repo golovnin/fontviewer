@@ -42,11 +42,9 @@ import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.SwingConstants;
 import javax.swing.UIManager;
-
 import java.awt.Font;
 
 import static com.github.golovnin.fontviewer.Fonts.*;
-import static com.github.golovnin.fontviewer.MainView.createScrollPane;
 import static com.jgoodies.binding.beans.PropertyConnector.connectAndUpdate;
 import static java.util.Objects.requireNonNull;
 
