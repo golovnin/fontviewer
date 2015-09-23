@@ -48,21 +48,19 @@ import static java.util.Objects.requireNonNull;
  */
 public final class FontModel extends Model {
 
-    static final String PROPERTY_SMALLER_FONT = "smallerFont";
-    static final String PROPERTY_SMALL_FONT   = "smallFont";
-    static final String PROPERTY_DEFAULT_FONT = "defaultFont";
-    static final String PROPERTY_MEDIUM_FONT  = "mediumFont";
-    static final String PROPERTY_LARGE_FONT   = "largeFont";
-    static final String PROPERTY_LARGER_FONT  = "largerFont";
-    static final String PROPERTY_GLYPHS       = "glyphs";
+    public static final String PROPERTY_DEFAULT_FONT = "defaultFont";
+    public static final String PROPERTY_FONT_96_DPI  = "fonts96dpi";
+    public static final String PROPERTY_FONT_120_DPI = "fonts120dpi";
+    public static final String PROPERTY_FONT_144_DPI = "fonts144dpi";
+    public static final String PROPERTY_FONT_192_DPI = "fonts192dpi";
+    public static final String PROPERTY_GLYPHS       = "glyphs";
 
     private final File file;
-    private Font smallerFont;
-    private Font smallFont;
     private Font defaultFont;
-    private Font mediumFont;
-    private Font largeFont;
-    private Font largerFont;
+    private Fonts fonts96dpi;
+    private Fonts fonts120dpi;
+    private Fonts fonts144dpi;
+    private Fonts fonts192dpi;
     private List<String> glyphs;
 
     FontModel(File file) {
@@ -73,46 +71,39 @@ public final class FontModel extends Model {
         int size = UIManager.getFont("List.font").getSize();
         Font newDefaultFont = Font.createFont(Font.TRUETYPE_FONT, file)
                 .deriveFont(Font.PLAIN, size);
-        List<String> newGlyphs = new ArrayList<>();
+        List<String> newGlyphs = new ArrayList<>(newDefaultFont.getNumGlyphs());
         for (char c = 0; c < 0xFFFF; c++) {
             if (newDefaultFont.canDisplay(c)) {
                 newGlyphs.add(String.valueOf(c));
             }
         }
-        int smallerStep = size / 4;
-        int biggerStep = size / 2;
-        this.smallerFont = newDefaultFont.deriveFont(Font.PLAIN, size - smallerStep *2);
-        this.smallFont = newDefaultFont.deriveFont(Font.PLAIN, size - smallerStep);
         this.defaultFont = newDefaultFont;
-        this.mediumFont = newDefaultFont.deriveFont(Font.PLAIN, size + biggerStep);
-        this.largeFont = newDefaultFont.deriveFont(Font.PLAIN, size + biggerStep * 2);
-        this.largerFont = newDefaultFont.deriveFont(Font.PLAIN, size + biggerStep * 4);
+        this.fonts96dpi = Fonts.for96dpi(newDefaultFont);
+        this.fonts120dpi = Fonts.for120dpi(newDefaultFont);
+        this.fonts144dpi = Fonts.for144dpi(newDefaultFont);
+        this.fonts192dpi = Fonts.for192dpi(newDefaultFont);
         this.glyphs = newGlyphs;
         EventQueue.invokeLater(this::fireMultiplePropertiesChanged);
-    }
-
-    public Font getSmallerFont() {
-        return smallerFont;
-    }
-
-    public Font getSmallFont() {
-        return smallFont;
     }
 
     public Font getDefaultFont() {
         return defaultFont;
     }
 
-    public Font getMediumFont() {
-        return mediumFont;
+    public Fonts getFonts96dpi() {
+        return fonts96dpi;
     }
 
-    public Font getLargeFont() {
-        return largeFont;
+    public Fonts getFonts120dpi() {
+        return fonts120dpi;
     }
 
-    public Font getLargerFont() {
-        return largerFont;
+    public Fonts getFonts144dpi() {
+        return fonts144dpi;
+    }
+
+    public Fonts getFonts192dpi() {
+        return fonts192dpi;
     }
 
     public List<String> getGlyphs() {

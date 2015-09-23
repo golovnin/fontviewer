@@ -41,6 +41,7 @@ import java.io.File;
 import java.util.concurrent.ExecutionException;
 import java.util.prefs.Preferences;
 
+import static com.github.golovnin.fontviewer.FontModel.*;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -51,11 +52,19 @@ final class MainModel {
     private final SelectionInList<FontModel> fonts;
     private final SelectionInList<String> glyphs;
     private final PresentationModel<FontModel> fontModel;
+    private final PresentationModel<Fonts> fonts96dpiModel;
+    private final PresentationModel<Fonts> fonts120dpiModel;
+    private final PresentationModel<Fonts> fonts144dpiModel;
+    private final PresentationModel<Fonts> fonts192dpiModel;
 
     MainModel() {
         this.fonts = new SelectionInList<>();
         this.fontModel = new PresentationModel<>(fonts.getSelectionHolder());
-        this.glyphs = new SelectionInList<>(fontModel.getModel(FontModel.PROPERTY_GLYPHS));
+        this.fonts96dpiModel = new PresentationModel<>(fontModel.getModel(PROPERTY_FONT_96_DPI));
+        this.fonts120dpiModel = new PresentationModel<>(fontModel.getModel(PROPERTY_FONT_120_DPI));
+        this.fonts144dpiModel = new PresentationModel<>(fontModel.getModel(PROPERTY_FONT_144_DPI));
+        this.fonts192dpiModel = new PresentationModel<>(fontModel.getModel(PROPERTY_FONT_192_DPI));
+        this.glyphs = new SelectionInList<>(fontModel.getModel(PROPERTY_GLYPHS));
     }
 
     SelectionInList<FontModel> getFonts() {
@@ -68,6 +77,22 @@ final class MainModel {
 
     PresentationModel<FontModel> getFontModel() {
         return fontModel;
+    }
+
+    PresentationModel<Fonts> getFonts96dpiModel() {
+        return fonts96dpiModel;
+    }
+
+    PresentationModel<Fonts> getFonts120dpiModel() {
+        return fonts120dpiModel;
+    }
+
+    PresentationModel<Fonts> getFonts144dpiModel() {
+        return fonts144dpiModel;
+    }
+
+    PresentationModel<Fonts> getFonts192dpiModel() {
+        return fonts192dpiModel;
     }
 
     void addFont() {
@@ -169,7 +194,8 @@ final class MainModel {
 
         @Override
         public boolean accept(File f) {
-            return f.getName().toLowerCase().endsWith(".ttf");
+            return f.isDirectory()
+                || f.getName().toLowerCase().endsWith(".ttf");
         }
 
         @Override
