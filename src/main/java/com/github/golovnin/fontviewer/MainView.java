@@ -49,7 +49,6 @@ import java.awt.event.ActionEvent;
 import static com.github.golovnin.fontviewer.FontModel.PROPERTY_DEFAULT_FONT;
 import static com.jgoodies.binding.beans.PropertyConnector.connectAndUpdate;
 import static java.util.Objects.requireNonNull;
-import static javax.swing.SwingConstants.LEFT;
 
 /**
  * @author Andrej Golovnin
