@@ -39,16 +39,17 @@ import com.jgoodies.common.base.SystemUtils;
 import com.jgoodies.forms.builder.ButtonBarBuilder;
 import com.jgoodies.forms.builder.FormBuilder;
 import com.jgoodies.forms.factories.Paddings;
+import com.jgoodies.looks.plastic.PlasticXPLookAndFeel;
 import com.jgoodies.looks.windows.WindowsLookAndFeel;
 
 import javax.swing.*;
-import java.awt.Font;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 
-import static com.github.golovnin.fontviewer.FontModel.*;
+import static com.github.golovnin.fontviewer.FontModel.PROPERTY_DEFAULT_FONT;
 import static com.jgoodies.binding.beans.PropertyConnector.connectAndUpdate;
 import static java.util.Objects.requireNonNull;
+import static javax.swing.SwingConstants.LEFT;
 
 /**
  * @author Andrej Golovnin
@@ -72,10 +73,16 @@ final class MainView {
         frame.setVisible(true);
     }
 
-    private void configureLaF() {
+    private static void configureLaF() {
         if (SystemUtils.IS_OS_WINDOWS) {
             try {
                 UIManager.setLookAndFeel(new WindowsLookAndFeel());
+            } catch (UnsupportedLookAndFeelException e) {
+                // Ignore
+            }
+        } else if (!SystemUtils.IS_OS_MAC) {
+            try {
+                UIManager.setLookAndFeel(new PlasticXPLookAndFeel());
             } catch (UnsupportedLookAndFeelException e) {
                 // Ignore
             }
@@ -84,19 +91,19 @@ final class MainView {
 
     private JComponent createMainView() {
         return FormBuilder.create()
-                .columns("120dlu, $ug, f:240dlu:g")
-                .rows("p, $rg, f:240dlu:g, $rg, f:80dlu:g, $rg, p")
-                .padding(Paddings.DIALOG)
+            .columns("120dlu, $ug, f:300dlu:g")
+            .rows("p, $rg, f:180dlu:g, $rg, f:160dlu:g, $rg, p")
+            .padding(Paddings.DIALOG)
 
-                .add("Fonts:")           .xy(1, 1)
-                .add(createFontList())   .xywh(1, 3, 1, 3)
+            .add("Fonts:")           .xy(1, 1)
+            .add(createFontList())   .xywh(1, 3, 1, 3)
 
-                .add("Glyphs:")          .xy(3, 1)
-                .add(createGlyphsList()) .xy(3, 3)
-                .add(createGlyphView())  .xy(3, 5)
+            .add("Glyphs:")          .xy(3, 1)
+            .add(createGlyphsList()) .xy(3, 3)
+            .add(createGlyphView())  .xy(3, 5)
 
-                .add(createButtonBar())  .xy(1, 7)
-                .build();
+            .add(createButtonBar())  .xy(1, 7)
+            .build();
     }
 
     private JComponent createFontList() {
@@ -110,7 +117,7 @@ final class MainView {
         JList<String> list = createList(model.getGlyphs(), r);
         list.setLayoutOrientation(JList.HORIZONTAL_WRAP);
         list.setVisibleRowCount(0);
-        connectAndUpdate(getFontModel(PROPERTY_DEFAULT_FONT), list, "font");
+        connectAndUpdate(model.getFontModel().getModel(PROPERTY_DEFAULT_FONT), list, "font");
         return createScrollPane(list);
     }
 
@@ -122,35 +129,21 @@ final class MainView {
 
     private JComponent createGlyphView() {
         return createScrollPane(FormBuilder.create()
-                .columns("f:p:g, $ug, f:p:g, $ug, f:p:g, $ug, f:p:g, $ug, f:p:g, $ug, f:p:g, f:0:g")
-                .rows("p, $pg, f:p:g, $rg, p, f:0:g")
-                .background(UIManager.getColor("List.background"))
+            .columns("p, $lcg, p, f:0:g")
+            .rows("p, $ug, f:p:g")
+            .background(UIManager.getColor("List.background"))
+            .opaque(true)
+            .padding(Paddings.DIALOG)
 
-                .add(createUnicodeField()).xyw(1, 1, 12, "l, c")
+            .addROLabel("Code:")        .xy(1, 1)
+            .add(createUnicodeField())  .xy(3, 1)
+            .add(createFontsView())     .xyw(1, 3, 4)
 
-                .add(createGlyphLabel(PROPERTY_SMALLER_FONT)).xy(1, 3)
-                .add(createSizeLabel(PROPERTY_SMALLER_FONT)) .xy(1, 5)
-
-                .add(createGlyphLabel(PROPERTY_SMALL_FONT))  .xy(3, 3)
-                .add(createSizeLabel(PROPERTY_SMALL_FONT))   .xy(3, 5)
-
-                .add(createGlyphLabel(PROPERTY_DEFAULT_FONT)).xy(5, 3)
-                .add(createSizeLabel(PROPERTY_DEFAULT_FONT)) .xy(5, 5)
-
-                .add(createGlyphLabel(PROPERTY_MEDIUM_FONT)) .xy(7, 3)
-                .add(createSizeLabel(PROPERTY_MEDIUM_FONT))  .xy(7, 5)
-
-                .add(createGlyphLabel(PROPERTY_LARGE_FONT))  .xy(9, 3)
-                .add(createSizeLabel(PROPERTY_LARGE_FONT))   .xy(9, 5)
-
-                .add(createGlyphLabel(PROPERTY_LARGER_FONT)) .xy(11, 3)
-                .add(createSizeLabel(PROPERTY_LARGER_FONT))  .xy(11, 5)
-
-                .build());
+            .build());
     }
 
     private JComponent createUnicodeField() {
-        JTextField field = new JTextField();
+        JTextField field = new JTextField(6);
         field.setEditable(false);
         field.setBorder(null);
         field.setMargin(new Insets(0, 0, 0, 0));
@@ -160,28 +153,21 @@ final class MainView {
         return field;
     }
 
-    private JComponent createGlyphLabel(String fontPropertyName) {
-        JLabel l = new JLabel();
-        l.setHorizontalAlignment(SwingConstants.CENTER);
-        Bindings.bind(l, model.getGlyphs().getSelectionHolder());
-        connectAndUpdate(getFontModel(fontPropertyName), l, "font");
-        return l;
+    private JComponent createFontsView() {
+        JTabbedPane pane = new JTabbedPane();
+        pane.setBackground(UIManager.getColor("List.background"));
+
+        ValueModel glyphHolder = model.getGlyphs().getSelectionHolder();
+
+        pane.addTab("96 dpi", new FontsView(glyphHolder, model.getFonts96dpiModel()).createView());
+        pane.addTab("120 dpi", new FontsView(glyphHolder, model.getFonts120dpiModel()).createView());
+        pane.addTab("144 dpi", new FontsView(glyphHolder, model.getFonts144dpiModel()).createView());
+        pane.addTab("192 dpi", new FontsView(glyphHolder, model.getFonts192dpiModel()).createView());
+
+        return pane;
     }
 
-    private JComponent createSizeLabel(String fontPropertyName) {
-        JLabel l = new JLabel();
-        l.setHorizontalAlignment(SwingConstants.CENTER);
-        Bindings.bind(l, new ConverterValueModel(
-                getFontModel(fontPropertyName),
-                new SizeConverter()));
-        return l;
-    }
-
-    private ValueModel getFontModel(String propertyName) {
-        return model.getFontModel().getModel(propertyName);
-    }
-
-    private static JComponent createScrollPane(JComponent content) {
+    static JComponent createScrollPane(JComponent content) {
         JScrollPane pane = new JScrollPane(content);
         pane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         return pane;
@@ -218,23 +204,6 @@ final class MainView {
         @Override
         public void actionPerformed(ActionEvent e) {
             model.reloadFonts();
-        }
-    }
-
-    private static final class SizeConverter implements
-            BindingConverter<Font, String>
-    {
-
-        @Override
-        public String targetValue(Font sourceValue) {
-            return sourceValue != null
-                 ? String.valueOf(sourceValue.getSize())
-                 : "";
-        }
-
-        @Override
-        public Font sourceValue(String targetValue) {
-            return null;
         }
     }
 
