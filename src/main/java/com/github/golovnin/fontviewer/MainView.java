@@ -90,8 +90,8 @@ final class MainView {
 
     private JComponent createMainView() {
         return FormBuilder.create()
-            .columns("120dlu, $ug, f:300dlu:g")
-            .rows("p, $rg, f:180dlu:g, $rg, f:160dlu:g, $rg, p")
+            .columns("120dlu, $ug, f:320dlu:g")
+            .rows("p, $rg, f:180dlu:g, $rg, f:170dlu:g, $rg, p")
             .padding(Paddings.DIALOG)
 
             .add("Fonts:")           .xy(1, 1)
@@ -128,15 +128,16 @@ final class MainView {
 
     private JComponent createGlyphView() {
         return createScrollPane(FormBuilder.create()
-            .columns("p, $lcg, p, f:0:g")
+            .columns("p, $lcg, p, f:0:g, p")
             .rows("p, $ug, f:p:g")
             .background(UIManager.getColor("List.background"))
             .opaque(true)
             .padding(Paddings.DIALOG)
 
-            .addROLabel("Code:")        .xy(1, 1)
-            .add(createUnicodeField())  .xy(3, 1)
-            .add(createFontsView())     .xyw(1, 3, 4)
+            .addROLabel("Code:")           .xy(1, 1)
+            .add(createUnicodeField())     .xy(3, 1)
+            .add(createPaintImageField())  .xy(5, 1)
+            .add(createFontsView())        .xyw(1, 3, 5)
 
             .build());
     }
@@ -152,16 +153,29 @@ final class MainView {
         return field;
     }
 
+    private JComponent createPaintImageField() {
+        JCheckBox checkBox = new JCheckBox("use an offscreen image to paint the glyph");
+        checkBox.setContentAreaFilled(false);
+        ValueModel paintImageHolder = model.getFontModel().getModel(FontModel.PROPERTY_PAINT_IMAGE);
+        Bindings.bind(checkBox, paintImageHolder);
+        return checkBox;
+    }
+
     private JComponent createFontsView() {
-        JTabbedPane pane = new JTabbedPane();
+        final JTabbedPane pane = new JTabbedPane();
         pane.setBackground(UIManager.getColor("List.background"));
 
         ValueModel glyphHolder = model.getGlyphs().getSelectionHolder();
+        ValueModel paintImageHolder = model.getFontModel().getModel(FontModel.PROPERTY_PAINT_IMAGE);
+        paintImageHolder.addValueChangeListener((e) -> {
+            pane.revalidate();
+            pane.repaint();
+        });
 
-        pane.addTab("96 dpi", new FontsView(glyphHolder, model.getFonts96dpiModel()).createView());
-        pane.addTab("120 dpi", new FontsView(glyphHolder, model.getFonts120dpiModel()).createView());
-        pane.addTab("144 dpi", new FontsView(glyphHolder, model.getFonts144dpiModel()).createView());
-        pane.addTab("192 dpi", new FontsView(glyphHolder, model.getFonts192dpiModel()).createView());
+        pane.addTab("96 dpi", new FontsView(glyphHolder, paintImageHolder, model.getFonts96dpiModel()).createView());
+        pane.addTab("120 dpi", new FontsView(glyphHolder, paintImageHolder, model.getFonts120dpiModel()).createView());
+        pane.addTab("144 dpi", new FontsView(glyphHolder, paintImageHolder, model.getFonts144dpiModel()).createView());
+        pane.addTab("192 dpi", new FontsView(glyphHolder, paintImageHolder, model.getFonts192dpiModel()).createView());
 
         return pane;
     }

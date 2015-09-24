@@ -54,6 +54,7 @@ public final class FontModel extends Model {
     public static final String PROPERTY_FONT_144_DPI = "fonts144dpi";
     public static final String PROPERTY_FONT_192_DPI = "fonts192dpi";
     public static final String PROPERTY_GLYPHS       = "glyphs";
+    public static final String PROPERTY_PAINT_IMAGE  = "paintImage";
 
     private final File file;
     private Font defaultFont;
@@ -62,6 +63,7 @@ public final class FontModel extends Model {
     private Fonts fonts144dpi;
     private Fonts fonts192dpi;
     private List<String> glyphs;
+    private boolean paintImage;
 
     FontModel(File file) {
         this.file = requireNonNull(file, "file may not be null");
@@ -108,6 +110,16 @@ public final class FontModel extends Model {
 
     public List<String> getGlyphs() {
         return glyphs;
+    }
+
+    public boolean isPaintImage() {
+        return paintImage;
+    }
+
+    public void setPaintImage(boolean paintImage) {
+        boolean oldPaintImage = isPaintImage();
+        this.paintImage = paintImage;
+        firePropertyChange(PROPERTY_PAINT_IMAGE, oldPaintImage, paintImage);
     }
 
     @Override

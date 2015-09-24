@@ -42,10 +42,14 @@ import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.SwingConstants;
 import javax.swing.UIManager;
-import java.awt.Font;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.util.Map;
 
 import static com.github.golovnin.fontviewer.Fonts.*;
 import static com.jgoodies.binding.beans.PropertyConnector.connectAndUpdate;
+import static java.awt.RenderingHints.KEY_TEXT_ANTIALIASING;
+import static java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_ON;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -53,19 +57,30 @@ import static java.util.Objects.requireNonNull;
  */
 final class FontsView {
 
+    private static final Map<?, ?> DESKTOP_FONT_HINTS;
+
+    static {
+        Toolkit kit = Toolkit.getDefaultToolkit();
+        DESKTOP_FONT_HINTS = (Map<?, ?>) kit.getDesktopProperty("awt.font.desktophints");
+    }
+
     private final ValueModel glyphHolder;
+    private final ValueModel paintImageHolder;
     private final PresentationModel<Fonts> model;
 
-    FontsView(ValueModel glyphHolder, PresentationModel<Fonts> model) {
+    FontsView(ValueModel glyphHolder, ValueModel paintImageHolder,
+              PresentationModel<Fonts> model)
+    {
         this.glyphHolder = requireNonNull(glyphHolder, "glyphHolder may not be null");
+        this.paintImageHolder = requireNonNull(paintImageHolder, "paintImageHolder may not be null");
         this.model = requireNonNull(model, "model may not be null");
     }
 
     JComponent createView() {
         return FormBuilder.create()
-            .columns("p, $lcg, f:max(10dlu;p):g, $ug, f:max(16dlu;p):g, $ug, " +
-                    "f:max(24dlu;p):g, $ug, f:max(32dlu;p):g, $ug, " +
-                    "f:max(48dlu;p):g, f:0:g")
+            .columns("p, $lcg, f:max(10dlu;p):g, $ug, f:max(12dlu;p):g, $ug, " +
+                    "f:max(16dlu;p):g, $ug, f:max(24dlu;p):g, $ug, " +
+                    "f:max(32dlu;p):g, $ug, f:max(48dlu;p):g, f:0:g")
             .rows("f:0:g, f:p:g, $rg, p")
             .background(UIManager.getColor("List.background"))
             .opaque(true)
@@ -77,23 +92,26 @@ final class FontsView {
             .add(createGlyphLabel(PROPERTY_FONT_10x10))       .xy(3, 2)
             .add(createSizeLabel(PROPERTY_FONT_10x10))        .xy(3, 4)
 
-            .add(createGlyphLabel(PROPERTY_FONT_16x16))       .xy(5, 2)
-            .add(createSizeLabel(PROPERTY_FONT_16x16))        .xy(5, 4)
+            .add(createGlyphLabel(PROPERTY_FONT_DEFAULT))     .xy(5, 2)
+            .add(createSizeLabel(PROPERTY_FONT_DEFAULT))      .xy(5, 4)
 
-            .add(createGlyphLabel(PROPERTY_FONT_24x24))       .xy(7, 2)
-            .add(createSizeLabel(PROPERTY_FONT_24x24))        .xy(7, 4)
+            .add(createGlyphLabel(PROPERTY_FONT_16x16))       .xy(7, 2)
+            .add(createSizeLabel(PROPERTY_FONT_16x16))        .xy(7, 4)
 
-            .add(createGlyphLabel(PROPERTY_FONT_32x32))       .xy(9, 2)
-            .add(createSizeLabel(PROPERTY_FONT_32x32))        .xy(9, 4)
+            .add(createGlyphLabel(PROPERTY_FONT_24x24))       .xy(9, 2)
+            .add(createSizeLabel(PROPERTY_FONT_24x24))        .xy(9, 4)
 
-            .add(createGlyphLabel(PROPERTY_FONT_48x48))       .xy(11, 2)
-            .add(createSizeLabel(PROPERTY_FONT_48x48))        .xy(11, 4)
+            .add(createGlyphLabel(PROPERTY_FONT_32x32))       .xy(11, 2)
+            .add(createSizeLabel(PROPERTY_FONT_32x32))        .xy(11, 4)
+
+            .add(createGlyphLabel(PROPERTY_FONT_48x48))       .xy(13, 2)
+            .add(createSizeLabel(PROPERTY_FONT_48x48))        .xy(13, 4)
 
             .build();
     }
 
     private JComponent createGlyphLabel(String fontPropertyName) {
-        JLabel l = new JLabel();
+        JLabel l = new GlyphLabel(paintImageHolder);
         l.setHorizontalAlignment(SwingConstants.CENTER);
         l.setVerticalAlignment(SwingConstants.BOTTOM);
         Bindings.bind(l, glyphHolder);
@@ -125,6 +143,43 @@ final class FontsView {
         public Font sourceValue(String targetValue) {
             return null;
         }
+    }
+
+    private static final class GlyphLabel extends JLabel {
+
+        private final ValueModel paintImageHolder;
+
+        GlyphLabel(ValueModel paintImageHolder) {
+            this.paintImageHolder = paintImageHolder;
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            if (Boolean.TRUE.equals(paintImageHolder.getValue())) {
+                int w = getWidth();
+                int h = getHeight();
+                BufferedImage image = getGraphicsConfiguration()
+                        .createCompatibleImage(w, h, Transparency.TRANSLUCENT);
+                Graphics2D g2 = image.createGraphics();
+                g2.setFont(getFont());
+                g2.setColor(getForeground());
+                if (DESKTOP_FONT_HINTS != null) {
+                    g2.addRenderingHints(DESKTOP_FONT_HINTS);
+                } else {
+                    g2.setRenderingHint(KEY_TEXT_ANTIALIASING, VALUE_TEXT_ANTIALIAS_ON);
+                }
+                String code = getText();
+                FontMetrics fm = g2.getFontMetrics();
+                int sx = (w - fm.stringWidth(code)) / 2;
+                int sy = h - fm.getDescent();
+                g2.drawString(code, sx, sy);
+                g2.dispose();
+                g.drawImage(image, 0, 0, null);
+            } else {
+                super.paintComponent(g);
+            }
+        }
+
     }
 
 }

@@ -48,22 +48,25 @@ public final class Fonts extends Model {
     private static final float SCALE_FACTOR_144_DPI = 1.5f;
     private static final float SCALE_FACTOR_192_DPI = 2.0f;
 
-    public static final String PROPERTY_FONT_10x10 = "font10x10";
-    public static final String PROPERTY_FONT_16x16 = "font16x16";
-    public static final String PROPERTY_FONT_24x24 = "font24x24";
-    public static final String PROPERTY_FONT_32x32 = "font32x32";
-    public static final String PROPERTY_FONT_48x48 = "font48x48";
+    public static final String PROPERTY_FONT_10x10   = "font10x10";
+    public static final String PROPERTY_FONT_DEFAULT = "fontDefault";
+    public static final String PROPERTY_FONT_16x16   = "font16x16";
+    public static final String PROPERTY_FONT_24x24   = "font24x24";
+    public static final String PROPERTY_FONT_32x32   = "font32x32";
+    public static final String PROPERTY_FONT_48x48   = "font48x48";
 
     private final Font font10x10;
+    private final Font fontDefault;
     private final Font font16x16;
     private final Font font24x24;
     private final Font font32x32;
     private final Font font48x48;
 
-    private Fonts(Font font10x10, Font font16x16, Font font24x24,
-                 Font font32x32, Font font48x48)
+    private Fonts(Font font10x10, Font fontDefault, Font font16x16,
+                  Font font24x24, Font font32x32, Font font48x48)
     {
         this.font10x10 = font10x10;
+        this.fontDefault = fontDefault;
         this.font16x16 = font16x16;
         this.font24x24 = font24x24;
         this.font32x32 = font32x32;
@@ -89,6 +92,7 @@ public final class Fonts extends Model {
     private static Fonts forScaleFactor(Font font, float scaleFactor) {
         return new Fonts(
             font.deriveFont(Font.PLAIN, 10 * scaleFactor),
+            font,
             font.deriveFont(Font.PLAIN, 16 * scaleFactor),
             font.deriveFont(Font.PLAIN, 24 * scaleFactor),
             font.deriveFont(Font.PLAIN, 32 * scaleFactor),
@@ -98,6 +102,10 @@ public final class Fonts extends Model {
 
     public Font getFont10x10() {
         return font10x10;
+    }
+
+    public Font getFontDefault() {
+        return fontDefault;
     }
 
     public Font getFont16x16() {
