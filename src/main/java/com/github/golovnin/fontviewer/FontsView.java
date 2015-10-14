@@ -42,14 +42,10 @@ import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.SwingConstants;
 import javax.swing.UIManager;
-import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.util.Map;
+import java.awt.Font;
 
 import static com.github.golovnin.fontviewer.Fonts.*;
 import static com.jgoodies.binding.beans.PropertyConnector.connectAndUpdate;
-import static java.awt.RenderingHints.KEY_TEXT_ANTIALIASING;
-import static java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_ON;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -57,22 +53,15 @@ import static java.util.Objects.requireNonNull;
  */
 final class FontsView {
 
-    private static final Map<?, ?> DESKTOP_FONT_HINTS;
-
-    static {
-        Toolkit kit = Toolkit.getDefaultToolkit();
-        DESKTOP_FONT_HINTS = (Map<?, ?>) kit.getDesktopProperty("awt.font.desktophints");
-    }
-
+    private final ValueModel forceGaspHintHolder;
     private final ValueModel glyphHolder;
-    private final ValueModel paintImageHolder;
     private final PresentationModel<Fonts> model;
 
-    FontsView(ValueModel glyphHolder, ValueModel paintImageHolder,
+    FontsView(ValueModel forceGaspHintHolder, ValueModel glyphHolder,
               PresentationModel<Fonts> model)
     {
+        this.forceGaspHintHolder = requireNonNull(forceGaspHintHolder, "forceGaspHintHolder may not be null");
         this.glyphHolder = requireNonNull(glyphHolder, "glyphHolder may not be null");
-        this.paintImageHolder = requireNonNull(paintImageHolder, "paintImageHolder may not be null");
         this.model = requireNonNull(model, "model may not be null");
     }
 
@@ -111,7 +100,7 @@ final class FontsView {
     }
 
     private JComponent createGlyphLabel(String fontPropertyName) {
-        JLabel l = new GlyphLabel(paintImageHolder);
+        JLabel l = new GlyphLabel(forceGaspHintHolder);
         l.setHorizontalAlignment(SwingConstants.CENTER);
         l.setVerticalAlignment(SwingConstants.BOTTOM);
         Bindings.bind(l, glyphHolder);
@@ -143,43 +132,6 @@ final class FontsView {
         public Font sourceValue(String targetValue) {
             return null;
         }
-    }
-
-    private static final class GlyphLabel extends JLabel {
-
-        private final ValueModel paintImageHolder;
-
-        GlyphLabel(ValueModel paintImageHolder) {
-            this.paintImageHolder = paintImageHolder;
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            if (Boolean.TRUE.equals(paintImageHolder.getValue())) {
-                int w = getWidth();
-                int h = getHeight();
-                BufferedImage image = getGraphicsConfiguration()
-                        .createCompatibleImage(w, h, Transparency.TRANSLUCENT);
-                Graphics2D g2 = image.createGraphics();
-                g2.setFont(getFont());
-                g2.setColor(getForeground());
-                if (DESKTOP_FONT_HINTS != null) {
-                    g2.addRenderingHints(DESKTOP_FONT_HINTS);
-                } else {
-                    g2.setRenderingHint(KEY_TEXT_ANTIALIASING, VALUE_TEXT_ANTIALIAS_ON);
-                }
-                String code = getText();
-                FontMetrics fm = g2.getFontMetrics();
-                int sx = (w - fm.stringWidth(code)) / 2;
-                int sy = h - fm.getDescent();
-                g2.drawString(code, sx, sy);
-                g2.dispose();
-                g.drawImage(image, 0, 0, null);
-            } else {
-                super.paintComponent(g);
-            }
-        }
-
     }
 
 }

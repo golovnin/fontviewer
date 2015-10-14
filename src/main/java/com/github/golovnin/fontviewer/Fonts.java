@@ -92,7 +92,7 @@ public final class Fonts extends Model {
     private static Fonts forScaleFactor(Font font, float scaleFactor) {
         return new Fonts(
             font.deriveFont(Font.PLAIN, 10 * scaleFactor),
-            font,
+            font.deriveFont(Font.PLAIN, 12 * scaleFactor),
             font.deriveFont(Font.PLAIN, 16 * scaleFactor),
             font.deriveFont(Font.PLAIN, 24 * scaleFactor),
             font.deriveFont(Font.PLAIN, 32 * scaleFactor),
