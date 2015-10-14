@@ -30,6 +30,7 @@
 
 package com.github.golovnin.fontviewer;
 
+import com.jgoodies.binding.PresentationModel;
 import com.jgoodies.binding.adapter.Bindings;
 import com.jgoodies.binding.list.SelectionInList;
 import com.jgoodies.binding.value.BindingConverter;
@@ -90,18 +91,19 @@ final class MainView {
 
     private JComponent createMainView() {
         return FormBuilder.create()
-            .columns("120dlu, $ug, f:320dlu:g")
+            .columns("120dlu, $ug, f:280dlu:g, $ug, p")
             .rows("p, $rg, f:180dlu:g, $rg, f:170dlu:g, $rg, p")
             .padding(Paddings.DIALOG)
 
-            .add("Fonts:")           .xy(1, 1)
-            .add(createFontList())   .xywh(1, 3, 1, 3)
+            .add("Fonts:")                       .xy(1, 1)
+            .add(createFontList())               .xywh(1, 3, 1, 3)
 
-            .add("Glyphs:")          .xy(3, 1)
-            .add(createGlyphsList()) .xy(3, 3)
-            .add(createGlyphView())  .xy(3, 5)
+            .add("Glyphs:")                      .xy(3, 1)
+            .add(createForceGaspHintCheckBox())  .xy(5, 1)
+            .add(createGlyphsList())             .xyw(3, 3, 3)
+            .add(createGlyphView())              .xyw(3, 5, 3)
 
-            .add(createButtonBar())  .xy(1, 7)
+            .add(createButtonBar())              .xy(1, 7)
             .build();
     }
 
@@ -110,10 +112,25 @@ final class MainView {
         return createScrollPane(list);
     }
 
+    private JComponent createForceGaspHintCheckBox() {
+        ValueModel forceGaspHintHolder = model.getFontModel().getModel(
+                FontModel.PROPERTY_FORCE_GASP_HINT);
+        JCheckBox box = new JCheckBox("force GASP hint");
+        box.setContentAreaFilled(false);
+        Bindings.bind(box, forceGaspHintHolder);
+        return box;
+    }
+
     private JComponent createGlyphsList() {
-        DefaultListCellRenderer r = new DefaultListCellRenderer();
+        ValueModel forceGaspHintHolder = model.getFontModel().getModel(
+                FontModel.PROPERTY_FORCE_GASP_HINT);
+        GlyphListCellRenderer r = new GlyphListCellRenderer(forceGaspHintHolder);
         r.setHorizontalAlignment(SwingConstants.CENTER);
         JList<String> list = createList(model.getGlyphs(), r);
+        forceGaspHintHolder.addValueChangeListener(evt -> {
+            list.revalidate();
+            list.repaint();
+        });
         list.setLayoutOrientation(JList.HORIZONTAL_WRAP);
         list.setVisibleRowCount(0);
         connectAndUpdate(model.getFontModel().getModel(PROPERTY_DEFAULT_FONT), list, "font");
@@ -128,7 +145,7 @@ final class MainView {
 
     private JComponent createGlyphView() {
         return createScrollPane(FormBuilder.create()
-            .columns("p, $lcg, p, f:0:g, p")
+            .columns("p, $lcg, p, f:0:g")
             .rows("p, $ug, f:p:g")
             .background(UIManager.getColor("List.background"))
             .opaque(true)
@@ -136,8 +153,7 @@ final class MainView {
 
             .addROLabel("Code:")           .xy(1, 1)
             .add(createUnicodeField())     .xy(3, 1)
-            .add(createPaintImageField())  .xy(5, 1)
-            .add(createFontsView())        .xyw(1, 3, 5)
+            .add(createFontsView())        .xyw(1, 3, 4)
 
             .build());
     }
@@ -153,31 +169,24 @@ final class MainView {
         return field;
     }
 
-    private JComponent createPaintImageField() {
-        JCheckBox checkBox = new JCheckBox("use an offscreen image to paint the glyph");
-        checkBox.setContentAreaFilled(false);
-        ValueModel paintImageHolder = model.getFontModel().getModel(FontModel.PROPERTY_PAINT_IMAGE);
-        Bindings.bind(checkBox, paintImageHolder);
-        return checkBox;
-    }
-
     private JComponent createFontsView() {
         final JTabbedPane pane = new JTabbedPane();
         pane.setBackground(UIManager.getColor("List.background"));
 
-        ValueModel glyphHolder = model.getGlyphs().getSelectionHolder();
-        ValueModel paintImageHolder = model.getFontModel().getModel(FontModel.PROPERTY_PAINT_IMAGE);
-        paintImageHolder.addValueChangeListener((e) -> {
-            pane.revalidate();
-            pane.repaint();
-        });
-
-        pane.addTab("96 dpi", new FontsView(glyphHolder, paintImageHolder, model.getFonts96dpiModel()).createView());
-        pane.addTab("120 dpi", new FontsView(glyphHolder, paintImageHolder, model.getFonts120dpiModel()).createView());
-        pane.addTab("144 dpi", new FontsView(glyphHolder, paintImageHolder, model.getFonts144dpiModel()).createView());
-        pane.addTab("192 dpi", new FontsView(glyphHolder, paintImageHolder, model.getFonts192dpiModel()).createView());
+        pane.addTab("96 dpi", createTabView(model.getFonts96dpiModel()));
+        pane.addTab("120 dpi", createTabView(model.getFonts120dpiModel()));
+        pane.addTab("144 dpi", createTabView(model.getFonts144dpiModel()));
+        pane.addTab("192 dpi", createTabView(model.getFonts192dpiModel()));
 
         return pane;
+    }
+
+    private JComponent createTabView(PresentationModel<Fonts> fontsModel) {
+        return new FontsView(
+                model.getFontModel().getModel(FontModel.PROPERTY_FORCE_GASP_HINT),
+                model.getGlyphs().getSelectionHolder(),
+                fontsModel)
+                .createView();
     }
 
     static JComponent createScrollPane(JComponent content) {
@@ -187,7 +196,9 @@ final class MainView {
     }
 
     @SuppressWarnings("unchecked")
-    private static <E> JList<E> createList(SelectionInList<E> selectionInList, ListCellRenderer cellRenderer) {
+    private static <E> JList<E> createList(SelectionInList<E> selectionInList,
+                                           ListCellRenderer cellRenderer)
+    {
         JList list = new JList();
         Bindings.bind(list, selectionInList);
         if (cellRenderer != null) {

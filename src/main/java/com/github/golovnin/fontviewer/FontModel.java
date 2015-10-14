@@ -36,8 +36,12 @@ import javax.swing.UIManager;
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.FontFormatException;
+import java.awt.font.OpenType;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -48,13 +52,13 @@ import static java.util.Objects.requireNonNull;
  */
 public final class FontModel extends Model {
 
-    public static final String PROPERTY_DEFAULT_FONT = "defaultFont";
-    public static final String PROPERTY_FONT_96_DPI  = "fonts96dpi";
-    public static final String PROPERTY_FONT_120_DPI = "fonts120dpi";
-    public static final String PROPERTY_FONT_144_DPI = "fonts144dpi";
-    public static final String PROPERTY_FONT_192_DPI = "fonts192dpi";
-    public static final String PROPERTY_GLYPHS       = "glyphs";
-    public static final String PROPERTY_PAINT_IMAGE  = "paintImage";
+    public static final String PROPERTY_DEFAULT_FONT    = "defaultFont";
+    public static final String PROPERTY_FONT_96_DPI     = "fonts96dpi";
+    public static final String PROPERTY_FONT_120_DPI    = "fonts120dpi";
+    public static final String PROPERTY_FONT_144_DPI    = "fonts144dpi";
+    public static final String PROPERTY_FONT_192_DPI    = "fonts192dpi";
+    public static final String PROPERTY_GLYPHS          = "glyphs";
+    public static final String PROPERTY_FORCE_GASP_HINT = "forceGaspHint";
 
     private final File file;
     private Font defaultFont;
@@ -63,7 +67,7 @@ public final class FontModel extends Model {
     private Fonts fonts144dpi;
     private Fonts fonts192dpi;
     private List<String> glyphs;
-    private boolean paintImage;
+    private boolean forceGaspHint;
 
     FontModel(File file) {
         this.file = requireNonNull(file, "file may not be null");
@@ -73,6 +77,7 @@ public final class FontModel extends Model {
         int size = UIManager.getFont("List.font").getSize();
         Font newDefaultFont = Font.createFont(Font.TRUETYPE_FONT, file)
                 .deriveFont(Font.PLAIN, size);
+        dumpLoadedFont(newDefaultFont);
         List<String> newGlyphs = new ArrayList<>(newDefaultFont.getNumGlyphs());
         for (char c = 0; c < 0xFFFF; c++) {
             if (newDefaultFont.canDisplay(c)) {
@@ -112,19 +117,43 @@ public final class FontModel extends Model {
         return glyphs;
     }
 
-    public boolean isPaintImage() {
-        return paintImage;
+    public boolean isForceGaspHint() {
+        return forceGaspHint;
     }
 
-    public void setPaintImage(boolean paintImage) {
-        boolean oldPaintImage = isPaintImage();
-        this.paintImage = paintImage;
-        firePropertyChange(PROPERTY_PAINT_IMAGE, oldPaintImage, paintImage);
+    public void setForceGaspHint(boolean forceGaspHint) {
+        boolean oldForceGaspHint = isForceGaspHint();
+        this.forceGaspHint = forceGaspHint;
+        firePropertyChange(PROPERTY_FORCE_GASP_HINT, oldForceGaspHint, forceGaspHint);
     }
 
     @Override
     public String toString() {
         return defaultFont.getFontName();
+    }
+
+    private static void dumpLoadedFont(Font font) {
+        System.out.println("Loaded font: " + font);
+        try {
+            Method getFont2D = Font.class.getDeclaredMethod("getFont2D");
+            getFont2D.setAccessible(true);
+            Object font2D = getFont2D.invoke(font);
+
+            Class<?> font2DClass = font2D.getClass();
+            Field useJavaRasterizer = font2DClass.getSuperclass().getDeclaredField("useJavaRasterizer");
+            useJavaRasterizer.setAccessible(true);
+            System.out.println("useJavaRasterizer: " + useJavaRasterizer.get(font2D));
+
+            Method getTableSize = font2DClass.getDeclaredMethod("getTableSize", int.class);
+            getTableSize.setAccessible(true);
+            System.out.println("GASP table size: " + getTableSize.invoke(font2D, OpenType.TAG_GASP));
+        } catch (  NoSuchMethodException
+                 | InvocationTargetException
+                 | IllegalAccessException
+                 | NoSuchFieldException e)
+        {
+            // Ignore
+        }
     }
 
 }
